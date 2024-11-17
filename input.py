@@ -7,22 +7,6 @@ import PyPDF2
 
 def app(): 
     
-    # Save Img
-    def save_image_with_shutil(uploaded_image, save_path):
-    # Membuat direktori jika belum ada
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-
-        # Tentukan path lengkap file gambar
-        file_path = os.path.join(save_path, uploaded_image.name)
-        
-        # Menyimpan file gambar ke path yang ditentukan
-        with open(file_path, "wb") as f:
-            f.write(uploaded_image.getbuffer())
-    
-        st.success(f"Image saved to {file_path}")
-        return file_path
-    
     # Fungsi untuk menambahkan kata sandi pada file PDF
     def add_password_to_pdf(input_pdf_path, output_pdf_path, password):
         with open(input_pdf_path, 'rb') as input_pdf_file:
@@ -40,21 +24,6 @@ def app():
             # Menyimpan PDF yang telah diberi kata sandi
             with open(output_pdf_path, 'wb') as output_pdf_file:
                 pdf_writer.write(output_pdf_file)
-            
-    def save_doc_with_shutil(uploaded_file, save_path):
-    # Membuat direktori jika belum ada
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-
-        # Tentukan path lengkap file gambar
-        file_path = os.path.join(save_path, uploaded_file.name)
-        
-        # Menyimpan file gambar ke path yang ditentukan
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-    
-        st.success(f"File saved to {file_path}")
-        return file_path
     
     #ENKRIPSI TEXT
     def block_cipher_encrypt(text: str, key: str) -> str:
@@ -171,6 +140,12 @@ def app():
     def logout():
         st.session_state.logged_in = False
         st.session_state.username = None
+    # Fungsi untuk menyimpan file yang diunggah
+    def save_uploaded_file(uploaded_file, save_folder):
+        file_path = os.path.join(save_folder, uploaded_file.name)
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.read())
+        return file_path
 
     if not st.session_state.logged_in:
         st.title("Anda belum login. Silakan login terlebih dahulu.")
@@ -188,12 +163,13 @@ def app():
         if st.session_state.input_restricted : 
             st.title("Anda sudah mengisi data!")
         else: 
-            SAVE_FOLDER = "D:\Semester 5\1. Kriptografi\Projek2\image"
+            SAVE_FOLDER_IMG = "D:\Semester 5\1. Kriptografi\Projek2\image"
+            SAVE_FOLDER_DOC = "D:\Semester 5\1. Kriptografi\Projek2\doc"
             key = user
             key1 =3
             st.title("Halaman Utama")
             st.write("Selamat datang di halaman utama setelah login!")
-            with st.form("my_form", clear_on_submit=True):
+            with st.form("login_form", clear_on_submit=True):
                 st.markdown("<h3>Input Data</h3>", unsafe_allow_html=True)
            
                 #nama pengguna
@@ -236,32 +212,31 @@ def app():
                 st.markdown("⚠️ **Hanya file dengan ukuran maksimal 10 MB yang diterima.**")
                 
                 uploaded_img = st.file_uploader("Unggah foto profil Anda", type=["png"], accept_multiple_files=False)
-                if uploaded_img:
-                    save_folder = r"D:\Semester 5\1. Kriptografi\Projek2\image" # Tentukan folder penyimpanan
-                    input_image = uploaded_img  # Gambar harus berformat PNG
-                    output_image = os.path.join(save_folder, f"steg_{uploaded_img.name}")
-
-                    # Teks yang ingin disembunyikan
-                    secret_text = ' | '.join([str(name), str(address), str(gender), str(birth), str(telephone)])
-
-                    # Encode teks ke dalam gambar
-                    encode_text_in_image(input_image, secret_text, output_image)
-                    saved_image_path = save_image_with_shutil(uploaded_img, save_folder)
                         
                 uploaded_files = st.file_uploader("Pilih CV Anda", type=["pdf"], accept_multiple_files=False)
-                if uploaded_files:
-                    save_folder = r"D:\Semester 5\1. Kriptografi\Projek2\doc" # Tentukan folder penyimpanan
-                    saved_doc_path = save_doc_with_shutil(uploaded_files, save_folder)
-                    password = user
-                    output_pdf_path = os.path.join(save_folder, f"protected_{uploaded_files.name}")
-                    add_password_to_pdf(saved_doc_path, output_pdf_path, password)
 
                 submitted = st.form_submit_button("Submit")
                 if submitted:
                     if not (name and address and telephone and uploaded_img and uploaded_files):
                         st.warning("Semua field dan file wajib diisi!")
                     else:
+                        # Simpan Gambar dan Encode Teks
+                        if uploaded_img:
+                            image_path = save_uploaded_file(uploaded_img, SAVE_FOLDER_IMG)
+                            secret_text = f"{name} | {address} | {gender} | {birth} | {telephone}"
+                            output_image = os.path.join(SAVE_FOLDER_IMG, f"encoded_{uploaded_img.name}")
+                            encode_text_in_image(image_path, secret_text, output_image)
+                        
+                        # Simpan File PDF dan Proteksi dengan Kata Sandi
+                        if uploaded_files:
+                            saved_doc_path = save_uploaded_file(uploaded_files, SAVE_FOLDER_DOC)
+                            password = user
+                            output_pdf_path = os.path.join(SAVE_FOLDER_DOC, f"protected_{uploaded_files.name}")
+                            add_password_to_pdf(saved_doc_path, output_pdf_path, password)
+                        
+                        # Simpan Data ke Database
                         input(user, name, address, gender, birth, telephone, uploaded_img.name, uploaded_files.name)
+                        st.success("Data dan file berhasil disimpan dan diproses.")
                        
         col1, col2 = st.columns([7, 1]) 
         with col2:   
