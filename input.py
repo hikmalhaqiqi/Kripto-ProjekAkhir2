@@ -193,7 +193,7 @@ def app():
             key1 =3
             st.title("Halaman Utama")
             st.write("Selamat datang di halaman utama setelah login!")
-            with st.form("login_form", clear_on_submit=True):
+            with st.form("my_form", clear_on_submit=True):
                 st.markdown("<h3>Input Data</h3>", unsafe_allow_html=True)
            
                 #nama pengguna
